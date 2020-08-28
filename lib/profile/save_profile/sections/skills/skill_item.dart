@@ -1,21 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:flutter_picker/flutter_picker.dart';
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:random_string/random_string.dart';
 import 'package:redux/redux.dart';
 
-import '../../../../actions/actions.dart';
-import '../../../../constants/profile_constants.dart';
-import '../../../../models/models.dart';
-import '../../../../selectors/selectors.dart';
-import '../../../common/app_bar.dart';
-import '../../../common/delete_button.dart';
-import '../../../common/input_field.dart';
-import '../../../common/list_picker.dart';
-import '../../../common/picker_field.dart';
-import '../../../common/styles.dart';
+import '../../../../common/common.dart';
+import '../../../../constants/constants.dart';
+import '../../../../icons/aspire_icons.dart';
+import '../../../../models/states/app_state.dart';
 
 class SaveSkillItem extends StatefulWidget {
   final bool editMode;
@@ -31,200 +22,204 @@ class SaveSkillItem extends StatefulWidget {
 class _SaveSkillItemState extends State<SaveSkillItem> {
   final GlobalKey<FormBuilderState> _saveSkillItemKey 
     = GlobalKey<FormBuilderState>();
-  final FocusNode skillFocus = FocusNode();
-  final List<String> skills = [skillBeginner, skillIntermediate, skillExpert];
-  
-  bool isLevelFocused, isActive;
+
+  bool isSkillNameFocused, isExpertiseFocused;
+
   Store<AppState> store; 
-  String generatedId;
+  double screenHeight, screenWidth;
 
   @override
   void initState() {
     super.initState();
    
-    isLevelFocused = false;
-    isActive = true;
-
-    textFieldFocusListener(skillFocus, 'skill');
-
-    if (!widget.editMode) {
-      generatedId = randomAlphaNumeric(15);
-    }
-  }
-
-  @override
-  void dispose() {
-    skillFocus.dispose();
-    super.dispose();
+    isSkillNameFocused = false;
+    isExpertiseFocused = false;
   }
 
   @override
   Widget build(BuildContext context) {
     store = StoreProvider.of<AppState>(context);
 
-    return GestureDetector(
-      onTap: unfocusFields,
-      child: Scaffold(
-        appBar: AppBarWithSave(
-          appBarTitle: widget.editMode ? editSkill : addSkill,
-          formKey: _saveSkillItemKey,
-          closeActionEnabled: true,
-          onCloseActionTap: handleClose,
-          onSaveActionTap: handleSaveSkill,
+    screenWidth = MediaQuery.of(context).size.width;
+    screenHeight = MediaQuery.of(context).size.height;
+
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0.0,
+        leading: IconButton(
+        iconSize: screenHeight * 0.02,
+        onPressed: () => {},
+        icon: Icon(
+            Icons.arrow_back_ios,
+            color: Theme.of(context).accentColor
+          )
         ),
         backgroundColor: Colors.white,
-        body: StoreConnector<AppState, Skill>(
-          converter: (store) => saveSkillStateSelector(
-            store,
-            id: widget.skillId ?? generatedId,
-            editMode: widget.editMode,
-            isPageActive: isActive
+      ),
+      backgroundColor: Colors.white,
+      body: Column(
+        children: <Widget>[
+          buildSkillsRow(),
+          ...buildSaveSkillItemForm(),
+          buildAddButton()
+        ]
+      )
+    );
+  }
+
+  BoxDecoration buildSkillContainerDecoration({bool isFocused}) {
+    return BoxDecoration(
+      border: Border.all(
+        color: isFocused ? ThemeColors.accent : Colors.grey,
+        width: 1.0,
+        style: BorderStyle.solid
+      ),
+      color: Colors.transparent,
+      shape: BoxShape.rectangle, 
+      borderRadius: BorderRadius.all(Radius.circular(20))
+    );
+  }
+
+  Widget buildSkillContainer(isFocused) {
+    return Container(
+      height: 60.0,
+      margin: EdgeInsets.symmetric(horizontal: 5.0),
+      width: screenWidth * 0.40,
+      decoration: buildSkillContainerDecoration(isFocused: isFocused),
+      child: Stack(
+        alignment: AlignmentDirectional.center,
+        children: <Widget>[
+          Positioned(
+            top: -10,
+            right: -10,
+            child: IconButton(
+              icon: Icon(Icons.close, size: 12.0),
+            ),
           ),
-          builder: (context, skill) => Container(
-            padding: EdgeInsets.all(20.0),
-              child: ListView(
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              FormatText(text: "Photoshop", fontSize: 16.0, fontWeight: FontWeight.w300,),
+              FormatText(text: "Intermediate", fontSize: 16.0, fontWeight: FontWeight.w200, textColor: Colors.grey)
+            ]
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget buildCenterAno() {
+    return Container(
+      margin: EdgeInsets.only(right: 20.0),
+      child: Column(
+        children: <Widget>[
+          Image.asset('images/onboarding/ano_standing.png', height: 60.0),
+          Container(height: 1.5, width: 80, color: Colors.black),
+        ]
+      ),
+    );
+  }
+
+  Widget buildSkillsRow() {
+    return Container(
+      padding: EdgeInsets.only(top: screenHeight * 0.20, bottom: 60.0),
+      width: screenWidth,
+      child: Row(
+        children: <Widget>[
+          Container(
+            child: Column(
               children: <Widget>[
-                ...buildSaveSkillForm(skill),
-                widget.editMode
-                ? DeleteButton(
-                  labelText: deleteSkill,
-                  onPressed: handleDeleteSkill
-                )
-                : SizedBox()
+                buildCenterAno()
               ]
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <Widget>[
+                  buildSkillContainer(true),
+                  buildSkillContainer(false),
+                  buildSkillContainer(false),
+                ],
+              )
             )
           )
-        )
+        ]
       )
     );
   }
 
-  void unfocusFields() {
-    skillFocus.unfocus();
-    unfocusLevelField();
-  }
-
-  void unfocusLevelField() {
-    setState(() {
-      isLevelFocused = false;
-    });
-  }
-
-  void textFieldFocusListener(FocusNode focus, String attribute) {
-    focus.addListener(() {
-      if (focus.hasFocus) {
-        unfocusLevelField();
-      } else {
-        _saveSkillItemKey
-          .currentState
-          .fields[attribute]
-          .currentState
-          .validate();
-      }
-    });
-  }
-
-  void handleSaveSkill() {
-    store.dispatch(SaveSkill(payload: widget.editMode));
-    setState(() { isActive = false; });
-    unfocusFields();
-    Navigator.pop(context);
-  }
-
-  void handleDeleteSkill() {
-    store.dispatch(DeleteSkill());
-    setState(() { isActive = false; });
-    unfocusFields();
-    Navigator.pop(context);
-  }
-
-  void handleClose() {
-    store.dispatch(UpdateSaveSkillState(Skill.initial()));
-    setState(() { isActive = false; });
-  }
-
-  void handleLevelConfirm(Picker picker, Skill skill) {
-    var newLevel = picker.getSelectedValues()[0].toString();
-    store.dispatch(
-      UpdateSaveSkillState(
-        skill.copyWith(
-          level: newLevel
-        )
+  Widget buildSkillField() {
+    return Container(
+      padding: EdgeInsets.only(bottom: 20.0, left: 60.0, right: 60.0),
+      child: FormBuilderTextField(
+        attribute: 'school',
+        maxLines: 1,
+        style: fieldTextStyle(color: Theme.of(context).primaryColor),
+        // onChanged: () => {},
+        decoration: fieldDecoration(
+          icon: AspireIcons.lock,
+          hintText: addSkillHint,
+          isFocused: isSkillNameFocused,
+          isInvalid: false
+        ),
+        validators: [
+          FormBuilderValidators.required(),
+          FormBuilderValidators.maxLength(30),
+        ],
+        keyboardType: TextInputType.text,
       )
     );
-    _saveSkillItemKey.currentState.fields['level'].currentState
-      .didChange(newLevel);    
-    _saveSkillItemKey.currentState.fields['level'].currentState
-      .validate();
   }
 
-  void showLevelPicker(Skill skill) {
-    ListPicker(
-      data: skills,
-      selecteds: [ skill.level != null 
-        ? skills.indexOf(skill.level) 
-        : 0 
-      ],
-      onConfirm: (picker, value) => handleLevelConfirm(picker, skill)
-    ).build(context).showModal(context);
-  }
-
-  Widget buildSkillField(Skill skill) {
-    return FormBuilderTextField(
-      attribute: 'skill',
-      initialValue: skill.name,
-      decoration: fieldDecoration(),
-      style: fieldTextStyle,
-      onChanged: (value) => store.dispatch(
-        UpdateSaveSkillState(
-          skill.copyWith(
-            name: value
-          )
-        )
-      ),
-      focusNode: skillFocus,
-      validators: [
-        FormBuilderValidators.required(),
-        FormBuilderValidators.maxLength(100),
-      ],
-      keyboardType: TextInputType.text,
+  Widget buildExpertiseField() {
+    return Container(
+      padding: EdgeInsets.only(bottom: 20.0, left: 60.0, right: 60.0),
+      child: FormBuilderTextField(
+        attribute: 'school',
+        maxLines: 1,
+        style: fieldTextStyle(color: Theme.of(context).primaryColor),
+        // onChanged: () => {},
+        decoration: fieldDecoration(
+          icon: AspireIcons.lock,
+          hintText: skillExpertiseHint,
+          isFocused: isExpertiseFocused,
+          isInvalid: false
+        ),
+        validators: [
+          FormBuilderValidators.required(),
+          FormBuilderValidators.maxLength(30),
+        ],
+        keyboardType: TextInputType.text,
+      )
     );
   }
 
-  Widget buildLevelField(Skill skill) {
-    return PickerField(
-      attribute: 'level',
-      initialValue: skill.level,
-      isFocused: isLevelFocused,
-      isEnabled: true,
-      value: skill.level ?? '',
-      onTap: () {
-        skillFocus.unfocus();
-        setState(() {
-          isLevelFocused = true;
-        });
-        showLevelPicker(skill); 
-      }
-    );
-  }
-
-  List<Widget> buildSaveSkillForm(Skill skill) {
+  List<Widget> buildSaveSkillItemForm() {
     return <Widget>[
       FormBuilder(
         key: _saveSkillItemKey,
         child: Column(
           children: <Widget>[
-            InputField(
-              labelText: saveSkillSkill,
-              formField: buildSkillField(skill)
-            ),
-            InputField(
-              labelText: saveSkillLevel,
-              formField: buildLevelField(skill)
-            )
+            buildSkillField(),
+            buildExpertiseField(),
           ]
         )
       ),
     ];
   }
+
+  Widget buildAddButton() {
+    return Container(
+      padding: EdgeInsets.only(top:100.0, bottom: 20.0, 
+      left: 60.0, right: 60.0),
+      child: PrimaryButton(
+        isLight: true,
+        text: widget.editMode ? 'Edit' : 'Add',
+        onPressed: () => {},
+      )
+    );
+  }
+
 }

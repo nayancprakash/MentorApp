@@ -73,3 +73,7 @@ const String isoCodeCA = 'CA';
 // Education Item 
 const String SchoolNameHint = 'Enter your institution';
 const String DegreeFieldHint = 'Enter your credential';
+
+// Skill Item
+const String addSkillHint = 'Enter your skill';
+const String skillExpertiseHint = 'Choose your level';
